@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i4m</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="auth-screen" class="modal">
+        <div class="auth-card">
+            <h2 id="auth-title">Создать аккаунт</h2>
+            <p id="auth-subtitle">Станьте частью сообщества!</p>
+            <div class="input-group">
+                <label>ЛОГИН</label>
+                <input type="text" id="username" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label>ПАРОЛЬ</label>
+                <input type="password" id="password">
+            </div>
+            <button id="auth-btn">Зарегистрироваться</button>
+            <p class="toggle-auth"><span id="switch-auth">Уже есть аккаунт?</span></p>
+        </div>
+    </div>
+
+    <div id="app" class="app-container" style="display: none;">
+        <aside class="servers-bar">
+            <div class="server-btn active">DG</div>
+            <div class="server-btn" id="logout-btn" title="Выйти">Out</div>
+        </aside>
+
+        <nav class="chat-list-panel">
+            <!-- ... (вставить внутрь <nav class="chat-list-panel"> после <div class="chats">) -->
+<div class="user-settings-panel">
+    <div class="user-info-brief" id="open-profile">
+        <div class="avatar" id="my-avatar-preview"></div>
+        <div class="user-details">
+            <div id="my-name-display">Загрузка...</div>
+            <div style="font-size: 10px; color: #b9bbbe;">#0001</div>
+        </div>
+    </div>
+    <button id="logout-btn" title="Выйти">🚪</button>
+</div>
+
+<!-- Модальное окно профиля -->
+<div id="profile-modal" class="modal" style="display: none;">
+    <div class="auth-card profile-card">
+        <h2>Настройки профиля</h2>
+        <div class="input-group">
+            <label>ОТОБРАЖАЕМОЕ ИМЯ</label>
+            <input type="text" id="edit-display-name">
+        </div>
+        <div class="input-group">
+            <label>ССЫЛКА НА АВАТАР</label>
+            <input type="text" id="edit-avatar-url" placeholder="https://...">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button id="save-profile-btn" style="flex: 1;">Сохранить</button>
+            <button id="close-profile-btn" style="flex: 1; background: #4f545c;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+            <div class="search-container">
+                <!-- КРАСИВЫЙ ПОИСК -->
+                <input type="text" id="search-input" placeholder="Найти или начать беседу">
+            </div>
+            <div class="chats" id="chats-container"></div>
+        </nav>
+
+        <main class="chat-window">
+            <header class="chat-header">
+                <div class="user-info"><span id="current-chat-name">Выберите чат</span></div>
+            </header>
+            <div class="messages-container" id="messages-box"></div>
+            <footer class="input-area" id="input-zone" style="display: none;">
+                <div class="input-wrapper">
+                    <input type="text" id="msg-input" placeholder="Написать сообщение...">
+                    <button id="send-btn">➤</button>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
