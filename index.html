@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>i4m</title>
+    <title>i4m Messenger</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Экран авторизации -->
     <div id="auth-screen" class="modal">
         <div class="auth-card">
             <h2 id="auth-title">Создать аккаунт</h2>
@@ -20,50 +21,26 @@
                 <input type="password" id="password">
             </div>
             <button id="auth-btn">Зарегистрироваться</button>
-            <p class="toggle-auth"><span id="switch-auth">Уже есть аккаунт?</span></p>
+            <p class="toggle-auth"><span id="switch-auth" style="cursor:pointer; color:var(--accent)">Уже есть аккаунт?</span></p>
         </div>
     </div>
 
+    <!-- Основное приложение -->
     <div id="app" class="app-container" style="display: none;">
         <aside class="servers-bar">
-            <div class="server-btn active">DG</div>
-            <div class="server-btn" id="logout-btn" title="Выйти">Out</div>
+            <div class="server-btn profile-nav-btn" id="open-profile" title="Мои настройки">
+                <div class="avatar-container">
+                    <div class="avatar" id="my-avatar-preview"></div>
+                    <div class="status-indicator online"></div>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <div class="server-btn" id="logout-btn-main" title="Выйти">Out</div>
         </aside>
 
         <nav class="chat-list-panel">
-            <!-- ... (вставить внутрь <nav class="chat-list-panel"> после <div class="chats">) -->
-<div class="user-settings-panel">
-    <div class="user-info-brief" id="open-profile">
-        <div class="avatar" id="my-avatar-preview"></div>
-        <div class="user-details">
-            <div id="my-name-display">Загрузка...</div>
-            <div style="font-size: 10px; color: #b9bbbe;">#0001</div>
-        </div>
-    </div>
-    <button id="logout-btn" title="Выйти">🚪</button>
-</div>
-
-<!-- Модальное окно профиля -->
-<div id="profile-modal" class="modal" style="display: none;">
-    <div class="auth-card profile-card">
-        <h2>Настройки профиля</h2>
-        <div class="input-group">
-            <label>ОТОБРАЖАЕМОЕ ИМЯ</label>
-            <input type="text" id="edit-display-name">
-        </div>
-        <div class="input-group">
-            <label>ССЫЛКА НА АВАТАР</label>
-            <input type="text" id="edit-avatar-url" placeholder="https://...">
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button id="save-profile-btn" style="flex: 1;">Сохранить</button>
-            <button id="close-profile-btn" style="flex: 1; background: #4f545c;">Отмена</button>
-        </div>
-    </div>
-</div>
-
             <div class="search-container">
-                <!-- КРАСИВЫЙ ПОИСК -->
+                <div id="my-name-display" class="my-name-header">Загрузка...</div>
                 <input type="text" id="search-input" placeholder="Найти или начать беседу">
             </div>
             <div class="chats" id="chats-container"></div>
@@ -71,16 +48,64 @@
 
         <main class="chat-window">
             <header class="chat-header">
+                <div id="current-chat-avatar" class="avatar clickable-avatar" style="display: none; width: 32px; height: 32px; margin-right: 12px;"></div>
                 <div class="user-info"><span id="current-chat-name">Выберите чат</span></div>
             </header>
-            <div class="messages-container" id="messages-box"></div>
-            <footer class="input-area" id="input-zone" style="display: none;">
-                <div class="input-wrapper">
-                    <input type="text" id="msg-input" placeholder="Написать сообщение...">
-                    <button id="send-btn">➤</button>
+
+            <div class="messages-wrapper">
+                <div class="messages-container" id="messages-box"></div>
+                <div id="typing-indicator" class="typing-indicator" style="display: none;">
+                    <span></span><span></span><span></span> <small>печатает...</small>
                 </div>
+            </div>
+
+            <footer class="input-area" id="input-zone" style="display: none;">
+                <form id="message-form" class="input-wrapper">
+                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    <input type="text" id="msg-input" placeholder="Написать..." autocomplete="off">
+                    <div class="input-actions">
+                        <button type="button" id="attach-btn">📎</button>
+                        <button type="button" id="record-circle-btn">📷</button>
+                        <button type="submit" id="send-btn">➤</button>
+                    </div>
+                </form>
             </footer>
         </main>
+    </div>
+
+    <!-- МОДАЛКИ -->
+    <div id="view-user-modal" class="modal" style="display: none;">
+        <div class="auth-card profile-card">
+            <div class="avatar-large" id="view-user-avatar"></div>
+            <h2 id="view-user-name"></h2>
+            <div class="bio-section"><label>О СЕБЕ</label><p id="view-user-bio"></p></div>
+            <button class="btn-secondary" onclick="this.closest('.modal').style.display='none'">Закрыть</button>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="modal" style="display: none;">
+        <div class="auth-card profile-card">
+            <h2>Настройки</h2>
+            <div class="input-group"><label>ИМЯ</label><input type="text" id="edit-display-name"></div>
+            <div class="input-group"><label>О СЕБЕ</label><textarea id="edit-bio" rows="3"></textarea></div>
+            <div class="input-group"><label>АВАТАР (URL)</label><input type="text" id="edit-avatar-url"></div>
+            <div style="display:flex; gap:10px">
+                <button id="save-profile-btn" class="btn-primary">Сохранить</button>
+                <button id="close-profile-btn" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="video-record-modal" class="modal" style="display: none;">
+        <div class="auth-card circle-record-card">
+            <h3>Запись кружка</h3>
+            <div class="video-circle-container"><video id="video-preview" autoplay muted playsinline></video></div>
+            <div class="record-controls">
+                <button id="start-record">⏺ Запись</button>
+                <button id="stop-record" style="display: none;">⏹ Стоп</button>
+                <button id="cancel-record" class="btn-secondary">Отмена</button>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

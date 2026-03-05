@@ -1,231 +1,219 @@
 let currentUser = localStorage.getItem('activeUser') || null;
 let activeChatId = null;
 let isLoginMode = false;
-// ... (в начало файла)
+let mediaRecorder;
+let videoChunks = [];
+
+// Данные профиля
 let profile = JSON.parse(localStorage.getItem(`profile_${currentUser}`)) || {
-    name: currentUser,
-    avatar: ""
+    name: currentUser || "Гость",
+    avatar: "",
+    bio: "Станьте частью сообщества!"
 };
-
-// Функции профиля
-function updateProfileUI() {
-    document.getElementById('my-name-display').textContent = profile.name;
-    const avatarEls = [document.getElementById('my-avatar-preview')];
-    avatarEls.forEach(el => {
-        if(profile.avatar) el.style.backgroundImage = `url('${profile.avatar}')`;
-    });
-}
-
-// Открытие модалки
-document.getElementById('open-profile').onclick = () => {
-    document.getElementById('profile-modal').style.display = 'flex';
-    document.getElementById('edit-display-name').value = profile.name;
-    document.getElementById('edit-avatar-url').value = profile.avatar;
-};
-
-// Закрытие
-document.getElementById('close-profile-btn').onclick = () => {
-    document.getElementById('profile-modal').style.display = 'none';
-};
-
-// Сохранение
-document.getElementById('save-profile-btn').onclick = () => {
-    profile.name = document.getElementById('edit-display-name').value.trim() || currentUser;
-    profile.avatar = document.getElementById('edit-avatar-url').value.trim();
-    
-    localStorage.setItem(`profile_${currentUser}`, JSON.stringify(profile));
-    updateProfileUI();
-    document.getElementById('profile-modal').style.display = 'none';
-};
-
-// В конец блока инициализации (if (currentUser))
-if (currentUser) {
-    // ... существующий код ...
-    updateProfileUI();
-}
-
-// В функцию sendMessage добавить имя отправителя из профиля
-function loadMessages() {
-    const box = document.getElementById('messages-box');
-    const key = `msgs_${currentUser}_${activeChatId}`;
-    const history = JSON.parse(localStorage.getItem(key)) || [];
-    box.innerHTML = '';
-    history.forEach(m => {
-        const div = document.createElement('div');
-        div.className = `msg ${m.sender === currentUser ? 'outbound' : 'inbound'}`;
-        // Добавим имя над сообщением для красоты
-        const nameLabel = m.sender === currentUser ? profile.name : contacts.find(c => c.id === activeChatId)?.name;
-        div.innerHTML = `<div style="font-size: 10px; opacity: 0.7; margin-bottom: 4px;">${nameLabel}</div>${m.text}`;
-        box.appendChild(div);
-    });
-    box.scrollTop = box.scrollHeight;
-}
-
 
 const contacts = [
-    { id: 'durov', name: "Павел Дуров" },
-    { id: 'support', name: "Discord Support" },
-    { id: 'bot', name: "Mee6 Bot" },
-    { id: 'petya', name: "Петя (Школа)" }
+    { id: 'durov', name: "Павел Дуров", avatar: "https://paveldurov.com", bio: "Основатель Telegram" },
+    { id: 'support', name: "Discord Support", avatar: "", bio: "Поддержка i4m" },
+    { id: 'petya', name: "Петя (Школа)", avatar: "", bio: "Учусь кодить" }
 ];
 
-// Авторизация
-const switchBtn = document.getElementById('switch-auth');
-if(switchBtn) switchBtn.onclick = () => {
+// --- ИНИЦИАЛИЗАЦИЯ ---
+function init() {
+    if (currentUser) {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        updateProfileUI();
+        renderChats();
+    } else {
+        document.getElementById('auth-screen').style.display = 'flex';
+    }
+}
+
+function updateProfileUI() {
+    if (!currentUser) return;
+    document.getElementById('my-name-display').textContent = profile.name;
+    const av = document.getElementById('my-avatar-preview');
+    if (profile.avatar) {
+        av.style.backgroundImage = `url('${profile.avatar}')`;
+        av.textContent = '';
+    } else {
+        av.style.backgroundColor = 'var(--accent)';
+        av.textContent = profile.name[0].toUpperCase();
+    }
+}
+
+// --- АВТОРИЗАЦИЯ (ИСПРАВЛЕНО) ---
+document.getElementById('switch-auth').onclick = () => {
     isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').textContent = isLoginMode ? "С возвращением!" : "Создать аккаунт";
-    document.getElementById('auth-btn').textContent = isLoginMode ? "Вход" : "Зарегистрироваться";
+    document.getElementById('auth-title').textContent = isLoginMode ? "Вход" : "Создать аккаунт";
+    document.getElementById('auth-btn').textContent = isLoginMode ? "Войти" : "Зарегистрироваться";
 };
 
 document.getElementById('auth-btn').onclick = () => {
-    const u = document.getElementById('username').value;
-    const p = document.getElementById('password').value;
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value.trim();
+    if (!u || !p) return alert("Заполните поля");
+
     if (isLoginMode) {
         if (localStorage.getItem(`u_${u}`) === p) {
             localStorage.setItem('activeUser', u);
             location.reload();
-        } else alert("Ошибка!");
+        } else alert("Ошибка входа");
     } else {
         localStorage.setItem(`u_${u}`, p);
-        alert("Готово! Войдите.");
-        switchBtn.click();
+        alert("Успешно! Теперь войдите");
+        document.getElementById('switch-auth').click();
     }
 };
 
-// ПОИСК И РЕНДЕР
-function renderChats(filter = "") {
+document.getElementById('logout-btn-main').onclick = () => {
+    localStorage.removeItem('activeUser');
+    location.reload();
+};
+
+// --- ЧАТЫ ---
+function renderChats() {
     const container = document.getElementById('chats-container');
-    if (!container) return;
     container.innerHTML = '';
-
-    const filtered = contacts.filter(c => 
-        c.name.toLowerCase().includes(filter.toLowerCase())
-    );
-
-    filtered.forEach(c => {
+    contacts.forEach(c => {
         const div = document.createElement('div');
         div.className = `chat-item ${activeChatId === c.id ? 'active' : ''}`;
-        div.innerHTML = `<strong>${c.name}</strong>`;
+        const avBG = c.avatar ? `background-image:url('${c.avatar}')` : `background-color:var(--accent)`;
+        div.innerHTML = `
+            <div class="avatar" style="${avBG}">${c.avatar ? '' : c.name[0]}</div>
+            <div class="chat-info"><strong>${c.name}</strong><div style="font-size:11px; opacity:0.6">Нажмите...</div></div>
+        `;
         div.onclick = () => {
             activeChatId = c.id;
             document.getElementById('current-chat-name').textContent = c.name;
             document.getElementById('input-zone').style.display = 'block';
-            renderChats(filter); // Обновляем активный класс
+            renderChats();
             loadMessages();
         };
         container.appendChild(div);
     });
 }
 
-// Слушатель поиска
-document.getElementById('search-input').oninput = (e) => {
-    renderChats(e.target.value);
-};
-
-// Сообщения
+// --- СООБЩЕНИЯ (ФОТО + КРУЖКИ + КЛИКИ) ---
 function loadMessages() {
     const box = document.getElementById('messages-box');
     const key = `msgs_${currentUser}_${activeChatId}`;
     const history = JSON.parse(localStorage.getItem(key)) || [];
-    box.innerHTML = '';
-    history.forEach(m => {
-        const div = document.createElement('div');
-        div.className = `msg ${m.sender === currentUser ? 'outbound' : 'inbound'}`;
-        div.textContent = m.text;
-        box.appendChild(div);
-    });
-    box.scrollTop = box.scrollHeight;
-}
-
-function sendMessage() {
-    const input = document.getElementById('msg-input');
-    if (input.value.trim() && activeChatId) {
-        const key = `msgs_${currentUser}_${activeChatId}`;
-        const history = JSON.parse(localStorage.getItem(key)) || [];
-        history.push({ sender: currentUser, text: input.value.trim() });
-        localStorage.setItem(key, JSON.stringify(history));
-        input.value = '';
-        loadMessages();
-    }
-}
-
-
-// 1. Обновленная загрузка сообщений с отрисовкой галочек
-function loadMessages() {
-    const box = document.getElementById('messages-box');
-    const key = `msgs_${currentUser}_${activeChatId}`;
-    const history = JSON.parse(localStorage.getItem(key)) || [];
+    const contact = contacts.find(c => c.id === activeChatId);
     box.innerHTML = '';
 
     history.forEach(m => {
-        const div = document.createElement('div');
-        div.className = `msg ${m.sender === currentUser ? 'outbound' : 'inbound'}`;
+        const isMe = m.sender === currentUser;
+        const wrap = document.createElement('div');
+        wrap.className = `msg-wrapper ${isMe ? 'outbound' : 'inbound'}`;
         
-        // Логика галочек: если отправитель я — показываем статус
-        let ticks = '';
-        if (m.sender === currentUser) {
-            const tickClass = m.status === 'read' ? 'read' : 'sent';
-            const tickIcon = m.status === 'read' ? '✓✓' : '✓';
-            ticks = `<span class="ticks ${tickClass}">${tickIcon}</span>`;
-        }
+        let body = `<div>${m.text}</div>`;
+        if (m.type === 'image') body = `<img src="${m.url}" class="chat-img" onclick="window.open('${m.url}')">`;
+        if (m.type === 'video') body = `<div class="circle-message"><video src="${m.url}" controls></video></div>`;
 
-        const nameLabel = m.sender === currentUser ? (profile.name || currentUser) : (contacts.find(c => c.id === activeChatId)?.name || "Собеседник");
-        
-        div.innerHTML = `
-            <div class="msg-content">
-                <div style="font-size: 10px; opacity: 0.7; margin-bottom: 2px;">${nameLabel}</div>
-                <div>${m.text}</div>
-                <div class="msg-footer">${ticks}</div>
+        const avURL = isMe ? profile.avatar : contact.avatar;
+        const avStyle = avURL ? `background-image:url('${avURL}')` : `background-color:var(--accent)`;
+
+        wrap.innerHTML = `
+            <div class="msg-avatar" style="${avStyle}">${avURL ? '' : (isMe ? profile.name[0] : contact.name[0])}</div>
+            <div class="msg">
+                <div class="msg-content">${body}</div>
+                <div class="msg-footer">${isMe ? (m.status === 'read' ? '✓✓' : '✓') : ''}</div>
             </div>
         `;
-        box.appendChild(div);
+
+        wrap.querySelector('.msg-avatar').onclick = () => {
+            if(isMe) document.getElementById('open-profile').click();
+            else openViewProfile(contact);
+        };
+        box.appendChild(wrap);
     });
     box.scrollTop = box.scrollHeight;
 }
 
-// 2. Обновленная отправка с имитацией прочтения
-function sendMessage() {
+function sendMessage(type, data) {
     const input = document.getElementById('msg-input');
-    const text = input.value.trim();
-    if (text && activeChatId) {
-        const key = `msgs_${currentUser}_${activeChatId}`;
-        const history = JSON.parse(localStorage.getItem(key)) || [];
-        
-        // Создаем сообщение со статусом 'sent' (одна галочка)
-        const newMsg = { 
-            sender: currentUser, 
-            text: text, 
-            status: 'sent',
-            id: Date.now() 
-        };
-        
-        history.push(newMsg);
-        localStorage.setItem(key, JSON.stringify(history));
-        input.value = '';
-        loadMessages();
-
-        // Имитация прочтения через 1.5 секунды
-        setTimeout(() => {
-            const currentHistory = JSON.parse(localStorage.getItem(key)) || [];
-            const msgIndex = currentHistory.findIndex(m => m.id === newMsg.id);
-            if (msgIndex !== -1) {
-                currentHistory[msgIndex].status = 'read'; // Меняем на две галочки
-                localStorage.setItem(key, JSON.stringify(currentHistory));
-                // Обновляем экран только если этот чат всё еще открыт
-                if (activeChatId === activeChatId) loadMessages(); 
-            }
-        }, 1500);
-    }
+    if (type === 'text' && !input.value.trim()) return;
+    const key = `msgs_${currentUser}_${activeChatId}`;
+    const history = JSON.parse(localStorage.getItem(key)) || [];
+    const msg = { sender: currentUser, type, text: input.value, url: data, status: 'sent', id: Date.now() };
+    history.push(msg);
+    localStorage.setItem(key, JSON.stringify(history));
+    input.value = '';
+    loadMessages();
+    setTimeout(() => {
+        const h = JSON.parse(localStorage.getItem(key));
+        const i = h.findIndex(x => x.id === msg.id);
+        if(i !== -1) { h[i].status = 'read'; localStorage.setItem(key, JSON.stringify(h)); loadMessages(); }
+    }, 1500);
 }
 
+document.getElementById('message-form').onsubmit = (e) => { e.preventDefault(); sendMessage('text'); };
 
-document.getElementById('send-btn').onclick = sendMessage;
-document.getElementById('msg-input').onkeyup = (e) => e.key === 'Enter' && sendMessage();
-document.getElementById('logout-btn').onclick = () => { localStorage.removeItem('activeUser'); location.reload(); };
+// --- ФОТО ---
+const imgInp = document.getElementById('image-input');
+document.getElementById('attach-btn').onclick = () => imgInp.click();
+imgInp.onchange = () => {
+    const r = new FileReader();
+    r.onload = (e) => sendMessage('image', e.target.result);
+    r.readAsDataURL(imgInp.files[0]);
+};
 
-// Старт
-if (currentUser) {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    renderChats();
+// --- КРУЖКИ ---
+const recBtn = document.getElementById('record-circle-btn');
+const recModal = document.getElementById('video-record-modal');
+
+recBtn.onclick = async () => {
+    recModal.style.display = 'flex';
+    const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('video-preview').srcObject = s;
+    mediaRecorder = new MediaRecorder(s);
+    videoChunks = [];
+    mediaRecorder.ondataavailable = (e) => videoChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+        const b = new Blob(videoChunks, { type: 'video/mp4' });
+        const r = new FileReader();
+        r.onload = (e) => sendMessage('video', e.target.result);
+        r.readAsDataURL(b);
+        s.getTracks().forEach(t => t.stop());
+    };
+};
+
+document.getElementById('start-record').onclick = () => {
+    mediaRecorder.start();
+    document.getElementById('start-record').style.display='none';
+    document.getElementById('stop-record').style.display='block';
+};
+document.getElementById('stop-record').onclick = () => {
+    mediaRecorder.stop();
+    recModal.style.display='none';
+    document.getElementById('start-record').style.display='block';
+    document.getElementById('stop-record').style.display='none';
+};
+
+// --- ПРОФИЛЬ ---
+function openViewProfile(u) {
+    const m = document.getElementById('view-user-modal');
+    document.getElementById('view-user-name').textContent = u.name;
+    document.getElementById('view-user-bio').textContent = u.bio;
+    const av = document.getElementById('view-user-avatar');
+    if(u.avatar) av.style.backgroundImage = `url('${u.avatar}')`;
+    else av.style.backgroundColor = 'var(--accent)';
+    m.style.display = 'flex';
 }
+
+document.getElementById('open-profile').onclick = () => {
+    document.getElementById('profile-modal').style.display = 'flex';
+    document.getElementById('edit-display-name').value = profile.name;
+    document.getElementById('edit-bio').value = profile.bio;
+};
+
+document.getElementById('save-profile-btn').onclick = () => {
+    profile.name = document.getElementById('edit-display-name').value;
+    profile.bio = document.getElementById('edit-bio').value;
+    profile.avatar = document.getElementById('edit-avatar-url').value;
+    localStorage.setItem(`profile_${currentUser}`, JSON.stringify(profile));
+    location.reload();
+};
+
+init();
