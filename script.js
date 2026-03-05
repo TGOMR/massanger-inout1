@@ -16,6 +16,27 @@ const contacts = [
     { id: 'support', name: "Discord Support", avatar: "", bio: "Поддержка i4m" },
     { id: 'petya', name: "Петя (Школа)", avatar: "", bio: "Учусь кодить" }
 ];
+// Функция для мобильной навигации
+document.addEventListener('DOMContentLoaded', () => {
+    const chatsContainer = document.getElementById('chats-container');
+    const backBtn = document.getElementById('back-to-list');
+
+    // 1. Когда кликаем на список чатов (делегирование событий)
+    chatsContainer.addEventListener('click', (e) => {
+        // Проверяем, что кликнули по чату или внутри него
+        if (window.innerWidth <= 768) {
+            document.body.classList.add('chat-open');
+        }
+    });
+
+    // 2. Когда кликаем кнопку "Назад"
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            document.body.classList.remove('chat-open');
+        });
+    }
+});
+
 
 // --- ИНИЦИАЛИЗАЦИЯ ---
 function init() {

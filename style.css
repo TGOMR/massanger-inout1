@@ -49,3 +49,62 @@ body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; backg
 .input-group { margin-bottom: 15px; }
 .input-group label { display: block; font-size: 12px; margin-bottom: 5px; color: #8e9297; }
 .input-group input, textarea { width: 100%; padding: 8px; background: var(--bg-darker); border: none; color: white; border-radius: 4px; box-sizing: border-box; }
+
+@media (max-width: 768px) {
+    /* Растягиваем контейнер на весь экран */
+    .app-container {
+        display: flex;
+        flex-direction: column; /* Элементы встают друг под друга */
+        height: 100vh;
+    }
+
+    /* Прячем список серверов или делаем его горизонтальным снизу/сверху */
+    .servers-bar {
+        width: 100%;
+        height: 60px;
+        flex-direction: row;
+        padding: 5px;
+    }
+
+    /* На мобилках обычно либо список чатов, либо открытый чат */
+    .chat-list-panel {
+        width: 100%;
+        display: block; /* По умолчанию показываем список */
+    }
+
+    .chat-window {
+        position: fixed; /* Чат будет перекрывать список при открытии */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        display: none; /* Скрываем, пока не выбран чат */
+    }
+
+    /* Делаем модалки (авторизацию) адаптивными */
+    .auth-card {
+        width: 90%;
+        margin: 20px auto;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    html {
+        font-size: 14px; /* Немного уменьшаем базовый шрифт */
+    }
+    
+    input[type="text"], 
+    input[type="password"], 
+    button {
+        height: 45px; /* Увеличиваем область нажатия */
+        font-size: 16px; /* Чтобы iOS не зумил инпуты автоматически */
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+    }
+}
+
